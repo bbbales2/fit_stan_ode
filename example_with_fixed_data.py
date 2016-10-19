@@ -6,10 +6,11 @@ import pystan
 
 a = 1.5
 b = 0.5
+c = 0.7
 
 t = numpy.linspace(0.0, 1.5 * numpy.pi / 2.0, 15)
-y1 = a * t * numpy.sin(t)
-y2 = a * t * numpy.sin(t) + b * numpy.random.randn(15)
+y1 = a * t * (c + numpy.sin(t))
+y2 = a * t * (c + numpy.sin(t)) + b * numpy.random.randn(15)
 
 plt.plot(t, y1, 'b')
 plt.plot(t, y2, 'r*')
@@ -28,7 +29,14 @@ functions {
              real[] x_r,
              int[] x_i) {
     real dydt[1];
-    dydt[1] <- theta[1] * t * cos(t) + theta[1] * sin(t);
+
+    real a;
+    real c;
+
+    a <- theta[1];
+    c <- x_r[1];
+
+    dydt[1] <- a * t * cos(t) + a * (c + sin(t));
     return dydt;
   }
 }
@@ -37,12 +45,15 @@ data {
   int<lower=1> T;
   real y[T];
   real t0;
+  real c;
   real ts[T];
 }
 
 transformed data {
-  real x_r[0];
+  real x_r[1];
   int x_i[0];
+
+  x_r[1] <- c;
 }
 
 parameters {
@@ -83,6 +94,7 @@ fit = sm.sampling(data = {
     'T' : len(y2),
     'y' : y2,
     't0' : 0.0,
+    'c' : 0.7,
     'ts' : t
 })
 
